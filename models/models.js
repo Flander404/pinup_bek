@@ -190,6 +190,30 @@ const ProductAttribute = sequelize.define('product-attribute', {
     }
 });
 
+const Favourite = sequelize.define('favourite', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    userId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: User,
+            key: 'id'
+        },
+        allowNull: false
+    },
+    productId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: Product,
+            key: 'id'
+        },
+        allowNull: false
+    }
+})
+
 Image.addHook('beforeCreate', async (image, options) => {
     const maxId = await Image.max('id', { where: { productId: image.productId } });
     image.id = maxId !== null ? maxId + 1 : 1;
@@ -224,6 +248,16 @@ ProductAttribute.belongsTo(Product, { foreignKey: 'productId' });
 Attribute.hasMany(ProductAttribute, { foreignKey: 'attributeId' });
 ProductAttribute.belongsTo(Attribute, { foreignKey: 'attributeId' });
 
+
+// Пользователь может иметь множество избранных записей
+User.hasMany(Favourite, { foreignKey: 'userId' });
+Favourite.belongsTo(User, { foreignKey: 'userId' });
+
+// Одна запись в избранных относится к одному продукту
+Favourite.belongsTo(Product, { foreignKey: 'productId' });
+Product.hasMany(Favourite, { foreignKey: 'productId' });
+
+
 module.exports = {
     User,
     Category,
@@ -231,5 +265,6 @@ module.exports = {
     ProductAttribute,
     Attribute,
     AttributeCategory,
-    Image
+    Image,
+    Favourite
 };

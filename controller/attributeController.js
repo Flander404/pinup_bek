@@ -106,7 +106,7 @@ class AttributeController {
                 return next(ApiError.badRequest('Товар обязателен для получения связанных атрибутов'))
             }
 
-            const attributes = await ProductAttribute.findAll({ where: { productId } })
+            const attributes = await ProductAttribute.findAll({ where: { productId }, include: [{ model: Attribute }] })
 
             return res.json(attributes);
         } catch (err) {

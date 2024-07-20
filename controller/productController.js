@@ -8,37 +8,37 @@ class ProductController {
             if (!title || !description || !price || !introtext || !categoryTitle || !userId || !geo) {
                 return next(ApiError.badRequest('Все поля обязательны для заполнения'));
             }
-            
+
             const category = await Category.findOne({
                 where: { title: categoryTitle },
             });
             if (!category) return next(ApiError.badRequest('Категория не найдена'));
-    
+
             const user = await User.findByPk(userId);
             if (!user) return next(ApiError.badRequest('Пользователь не найден'));
-    
+
             const product = await Product.create({
                 title, description, price, introtext, categoryTitle: category.title, userId, geo
             });
             await updateCategoryTotal(product); // Обновление счетчика категории
-            
+
             const fullProduct = await Product.findOne({
                 where: { id: product.id },
                 include: [{ model: Category }]
             });
-    
+
             res.json(fullProduct);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
-    
+
 
 
     async getAll(req, res, next) {
         try {
             const products = await Product.findAll({
-                include: [{ model: Category }]
+                include: [{ model: Category }, {model: User}]
             });
             return res.json(products);
         } catch (err) {
@@ -49,7 +49,7 @@ class ProductController {
     async getOne(req, res, next) {
         try {
             const { id } = req.params;
-            const product = await Product.findOne({ where: { id } });
+            const product = await Product.findOne({ where: { id }, include: [{ model: Category }, {model: User}] });
             if (!product) {
                 return next(ApiError.badRequest('Товар не найден'));
             }
@@ -66,7 +66,10 @@ class ProductController {
             if (!category) {
                 return next(ApiError.badRequest('Категория не найдена'));
             } else {
-                const products = await Product.findAll({ where: { categoryTitle } });
+                const products = await Product.findAll({
+                    where: { categoryTitle },
+                    include: [{ model: Category }, { model: User }]
+                });
                 return res.json(products);
             }
         } catch (err) {
