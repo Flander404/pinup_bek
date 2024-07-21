@@ -39,15 +39,6 @@ const Category = sequelize.define('category', {
         type: DataTypes.INTEGER,
         defaultValue: 0
     }
-}, {
-    hooks: {
-        afterCreate: async (category, options) => {
-            await updateCategoryTotal(category);
-        },
-        afterDestroy: async (category, options) => {
-            await updateCategoryTotal(category);
-        }
-    }
 });
 
 const Product = sequelize.define('product', {
@@ -91,6 +82,18 @@ const Product = sequelize.define('product', {
             key: 'id',
         },
         allowNull: false
+    }
+}, {
+    hooks: {
+        afterCreate: async (product, options) => {
+            const category = await Category.findOne({
+                where: { title: product.categoryTitle }
+            });
+            if (category) {
+                category.total += 1;
+                await category.save();
+            }
+        }
     }
 });
 
@@ -218,14 +221,6 @@ Image.addHook('beforeCreate', async (image, options) => {
     const maxId = await Image.max('id', { where: { productId: image.productId } });
     image.id = maxId !== null ? maxId + 1 : 1;
 });
-
-async function updateCategoryTotal(category) {
-    const totalProducts = await Product.count({
-        where: { categoryTitle: category.title }
-    });
-    category.total = totalProducts;
-    await category.save();
-}
 
 User.hasMany(Product, { foreignKey: 'userId' });
 Product.belongsTo(User, { foreignKey: 'userId', targetKey: 'id' });

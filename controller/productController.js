@@ -20,7 +20,6 @@ class ProductController {
             const product = await Product.create({
                 title, description, price, introtext, categoryTitle: category.title, userId, geo
             });
-            await updateCategoryTotal(product); // Обновление счетчика категории
 
             const fullProduct = await Product.findOne({
                 where: { id: product.id },
@@ -96,9 +95,7 @@ class ProductController {
             if (!product) {
                 return next(ApiError.badRequest('Товар не найден'));
             }
-            const category = await Category.findOne({ where: { title: product.categoryTitle } });
             await product.destroy();
-            await updateCategoryTotal(category);
             return res.json({ message: 'Товар удален' });
         } catch (err) {
             return next(ApiError.internal(err.message));
@@ -106,13 +103,6 @@ class ProductController {
     }
 }
 
-// Функция для обновления total в категории
-async function updateCategoryTotal(category) {
-    const totalProducts = await Product.count({
-        where: { categoryTitle: category.title }
-    });
-    category.total = totalProducts;
-    await category.save();
-}
+
 
 module.exports = new ProductController();
