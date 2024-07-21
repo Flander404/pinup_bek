@@ -26,6 +26,19 @@ class FavouriteController {
             return next(ApiError.internal(err.message))
         }
     }
+    
+    async delete(req,res,next) {
+        try {
+            const { userId, productId } = req.body
+            if (!userId ||!productId) {
+                return next(ApiError.badRequest('Необходимы userId и productId для удаления из избранного'))
+            }
+            await Favourite.destroy({ where: { userId, productId } })
+            return res.status(204).send()
+        } catch (err) {
+            return next(ApiError.internal(err.message))
+        }
+    }
 }
 
 module.exports = new FavouriteController();
