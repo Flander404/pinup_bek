@@ -9,21 +9,25 @@ class ProductImageController {
         try {
             const { productId } = req.body;
             const { url } = req.files;
+            if (!url) {
+                return next(ApiError.badRequest('Изображение не загружено'));
+            }
             let fileName = uuid.v4() + '.jpg';
             url.mv(path.resolve(__dirname, "..", "static", fileName));
-
-            const product = await Product.findByPk(productId)
+    
+            const product = await Product.findByPk(productId);
             if (!product) {
                 return next(ApiError.badRequest('Продукт не найден'));
             }
+    
             const productImage = await Image.create({
                 productId,
                 url: fileName
-            })
-
+            });
+    
             return res.json(productImage);
         } catch (err) {
-            console.log(err);
+            return next(ApiError.badRequest(err.message))
         }
     }
 

@@ -1,6 +1,6 @@
 const uuid = require('uuid');
 const path = require('path');
-const { Category } = require('../models/models');
+const { Category, Favourite } = require('../models/models');
 const ApiError = require('../error/ApiError');
 
 class CategoryController {

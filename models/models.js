@@ -93,6 +93,15 @@ const Product = sequelize.define('product', {
                 category.total += 1;
                 await category.save();
             }
+        },
+        afterDestroy: async (product, options) => {
+            const category = await Category.findOne({
+                where: { title: product.categoryTitle }
+            });
+            if (category) {
+                category.total -= 1;
+                await category.save();
+            }
         }
     }
 });
@@ -121,7 +130,7 @@ const Image = sequelize.define('image', {
     indexes: [
         {
             unique: true,
-            fields: ['id']
+            fields: ['id', 'productId'] // добавьте уникальный индекс для пар (id, productId)
         }
     ]
 });

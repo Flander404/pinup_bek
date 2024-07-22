@@ -1,4 +1,4 @@
-const { Product, Category, User, Attribute, ProductAttribute } = require('../models/models');
+const { Product, Category, User, Attribute, ProductAttribute, Favourite } = require('../models/models');
 const ApiError = require('../error/ApiError');
 
 class ProductController {
@@ -37,7 +37,10 @@ class ProductController {
     async getAll(req, res, next) {
         try {
             const products = await Product.findAll({
-                include: [{ model: Category }, {model: User}]
+                include: [{ model: Category }, { model: User }],
+                order: [
+                    ['id', 'ASC']
+                ]
             });
             return res.json(products);
         } catch (err) {
@@ -48,7 +51,7 @@ class ProductController {
     async getOne(req, res, next) {
         try {
             const { id } = req.params;
-            const product = await Product.findOne({ where: { id }, include: [{ model: Category }, {model: User}] });
+            const product = await Product.findOne({ where: { id }, include: [{ model: Category }, { model: User }] });
             if (!product) {
                 return next(ApiError.badRequest('Товар не найден'));
             }
@@ -94,6 +97,10 @@ class ProductController {
             const product = await Product.findByPk(id);
             if (!product) {
                 return next(ApiError.badRequest('Товар не найден'));
+            }
+            const favorite = await Favourite.findOne({where: { productId: id }})
+            if (favorite) {
+                await favorite.destroy();
             }
             await product.destroy();
             return res.json({ message: 'Товар удален' });

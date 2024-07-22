@@ -7,6 +7,6 @@ router.get('/', productController.getAll)
 router.get('/:id', productController.getOne)
 router.get('/category/:categoryTitle', productController.getByCategory)
 router.get('/user/:userId', productController.getByUserId)
-router.delete('/:id')
+router.delete('/:id', productController.delete)
 
 module.exports = router
