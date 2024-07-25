@@ -83,7 +83,7 @@ class ProductController {
             const { userId } = req.params;
             const products = await Product.findAll({ where: { userId } })
             if (products.length <= 0) {
-                return next(ApiError.badRequest('Нету товаров у этого пользователя'));
+                return res.json(products)
             }
             return res.json(products);
         } catch (err) {
@@ -101,6 +101,10 @@ class ProductController {
             const favorite = await Favourite.findOne({where: { productId: id }})
             if (favorite) {
                 await favorite.destroy();
+            }
+            const attribute = await ProductAttribute.findOne({where: { productId: id }})
+            if (attribute) {
+                await attribute.destroy();
             }
             await product.destroy();
             return res.json({ message: 'Товар удален' });

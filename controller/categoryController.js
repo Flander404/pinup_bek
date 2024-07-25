@@ -1,6 +1,6 @@
 const uuid = require('uuid');
 const path = require('path');
-const { Category, Favourite } = require('../models/models');
+const { Category, Favourite, Product } = require('../models/models');
 const ApiError = require('../error/ApiError');
 
 class CategoryController {
@@ -53,7 +53,9 @@ class CategoryController {
             if (!category) {
                 return next(ApiError.badRequest('Категория не найдена'));
             }
-            await category.destroy();
+            const products = await Product.findAll({ where: { categoryTitle: title } })
+            console.log(products);
+            await category.destroy;
             return res.json({ message: 'Категория удалена' });
         } catch (err) {
             return next(ApiError.internal(err.message));
