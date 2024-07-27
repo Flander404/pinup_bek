@@ -50,6 +50,27 @@ class UserController {
             next(ApiError.internal(err.message))
         }
     }
+    async update(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { name, status, img } = req.body;
+            const user = await User.findByPk(id);
+    
+            if (!user) {
+                return next(ApiError.badRequest('Пользователь не найден'));
+            }
+    
+            user.name = name || user.name;
+            user.status = status || user.status;
+            user.img = img || user.img;
+    
+            await user.save();
+    
+            res.json(user);
+        } catch (err) {
+            next(ApiError.badRequest(err.message));
+        }
+    }
 }
 
 module.exports = new UserController();
