@@ -143,7 +143,8 @@ const AttributeCategory = sequelize.define('attribute-category', {
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: true
     },
     type: {
         type: DataTypes.STRING,
@@ -169,12 +170,13 @@ const Attribute = sequelize.define('attribute', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    attributeCategoryId: {
-        type: DataTypes.INTEGER,
+    attributeCategoryName: {
+        type: DataTypes.STRING,
         references: {
             model: AttributeCategory,
-            key: 'id'
+            key: 'name'
         },
+        onDelete: 'CASCADE', // Каскадное удаление
         allowNull: false
     }
 });
@@ -192,7 +194,8 @@ const ProductAttribute = sequelize.define('product-attribute', {
         type: DataTypes.INTEGER,
         references: {
             model: Attribute,
-            key: 'id'
+            key: 'id',
+            onDelete: 'CASCADE' // Каскадное удаление
         },
         allowNull: false
     },
@@ -243,8 +246,8 @@ Product.belongsTo(Category, { foreignKey: 'categoryTitle', targetKey: 'title' })
 Category.hasMany(AttributeCategory, { foreignKey: 'categoryTitle' })
 AttributeCategory.belongsTo(Category, { foreignKey: 'categoryTitle' })
 
-AttributeCategory.hasMany(Attribute, { foreignKey: 'attributeCategoryId' });
-Attribute.belongsTo(AttributeCategory, { foreignKey: 'attributeCategoryId' });
+AttributeCategory.hasMany(Attribute, { foreignKey: 'attributeCategoryName', sourceKey: 'name' });
+Attribute.belongsTo(AttributeCategory, { foreignKey: 'attributeCategoryName', targetKey: 'name' });
 
 Product.hasMany(ProductAttribute, { foreignKey: 'productId' });
 ProductAttribute.belongsTo(Product, { foreignKey: 'productId' });
@@ -263,6 +266,7 @@ Product.hasMany(Favourite, { foreignKey: 'productId' });
 
 
 module.exports = {
+    sequelize,
     User,
     Category,
     Product,

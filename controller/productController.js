@@ -98,11 +98,11 @@ class ProductController {
             if (!product) {
                 return next(ApiError.badRequest('Товар не найден'));
             }
-            const favorite = await Favourite.findOne({where: { productId: id }})
+            const favorite = await Favourite.findOne({ where: { productId: id } })
             if (favorite) {
                 await favorite.destroy();
             }
-            const attribute = await ProductAttribute.findOne({where: { productId: id }})
+            const attribute = await ProductAttribute.findOne({ where: { productId: id } })
             if (attribute) {
                 await attribute.destroy();
             }
@@ -112,6 +112,34 @@ class ProductController {
             return next(ApiError.internal(err.message));
         }
     }
+    async update(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { title, description, price, introtext, geo, categoryTitle } = req.body;
+    
+            // Найти продукт по id
+            const product = await Product.findByPk(id);
+            if (!product) {
+                return next(ApiError.badRequest('Продукт не найден'))
+            }
+    
+            // Обновить поля продукта
+            product.title = title || product.title;
+            product.description = description || product.description;
+            product.price = price || product.price;
+            product.introtext = introtext || product.introtext;
+            product.geo = geo || product.geo;
+            product.categoryTitle = categoryTitle || product.categoryTitle;
+    
+            // Сохранить изменения
+            await product.save();
+    
+            return res.json(product);
+        } catch (err) {
+            return next(ApiError.internal(err.message));
+        }
+    }
+    
 }
 
 

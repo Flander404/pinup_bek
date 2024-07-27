@@ -1,4 +1,4 @@
-const { AttributeCategory, Attribute, ProductAttribute, Product, Category } = require("../models/models");
+const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize } = require("../models/models");
 const ApiError = require('../error/ApiError')
 
 class AttributeController {
@@ -8,7 +8,7 @@ class AttributeController {
             if (!type || !categoryTitle) {
                 return next(ApiError.badRequest('Тип и категория обязательны для создания категории атрибутов'));
             }
-            const categories = await Category.findOne({where: { title: categoryTitle }});
+            const categories = await Category.findOne({ where: { title: categoryTitle } });
             if (!categories) {
                 return next(ApiError.badRequest('Категория не найдена'));
             }
@@ -46,25 +46,54 @@ class AttributeController {
             next(ApiError.internal("Ошибка сервера: " + err.message));
         }
     }
-    async createAttribute(req, res, next) {
+    async deleteAttributeCategory(req, res, next) {
+        const { id } = req.params;
+        const transaction = await sequelize.transaction();
+
         try {
-            const { name, attributeCategoryId } = req.body;
-            if (!name || !attributeCategoryId) {
-                return next(ApiError.badRequest('Название и категория атрибута обязательны для создания'));
-            }
-            const attributeCategories = await AttributeCategory.findByPk(attributeCategoryId);
-            if (!attributeCategories) {
+            const category = await AttributeCategory.findByPk(id, { transaction });
+            if (!category) {
                 return next(ApiError.badRequest('Категория атрибута не найдена'));
             }
+
+            // Удаление категории и связанных с ней атрибутов и product-attributes
+            await category.destroy({ transaction });
+
+            // Подтверждение транзакции
+            await transaction.commit();
+
+            res.status(200).send({ message: 'Категория атрибута и связанные с ней атрибуты успешно удалены' });
+        } catch (error) {
+            // Откат транзакции в случае ошибки
+            await transaction.rollback();
+            next(error);
+        }
+    }
+    async createAttribute(req, res, next) {
+        try {
+            const { name, attributeCategoryName } = req.body;
+            if (!name || !attributeCategoryName) {
+                return next(ApiError.badRequest('Название и категория атрибута обязательны для создания'));
+            }
+
+            // Поиск категории атрибутов по имени
+            const attributeCategory = await AttributeCategory.findOne({ where: { name: attributeCategoryName } });
+            if (!attributeCategory) {
+                return next(ApiError.badRequest('Категория атрибута не найдена'));
+            }
+
+            // Создание нового атрибута
             const attribute = await Attribute.create({
                 name,
-                attributeCategoryId
+                attributeCategoryName: attributeCategory.name
             });
+
             return res.json(attribute);
         } catch (err) {
             next(ApiError.internal("Ошибка сервера: " + err.message));
         }
     }
+
     async getAllAttributes(req, res, next) {
         try {
             const attributes = await Attribute.findAll();
@@ -113,6 +142,20 @@ class AttributeController {
             return next(ApiError.internal(err.message))
         }
     }
+    async deleteAttributeProduct(req, res, next) {
+        const { productId } = req.params;
+        try {
+            const result = await ProductAttribute.destroy({ where: { productId } });
+            if (result === 0) {
+                return next(ApiError.badRequest('Связь атрибута и товара не найдена'));
+            }
+            
+            res.status(200).send({ message: 'Связь атрибута и товара успешно удалена' });
+        } catch (err) {
+            return next(ApiError.badRequest(err.message));
+        }
+    }
+    
 }
 
 module.exports = new AttributeController();
