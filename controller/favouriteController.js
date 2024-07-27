@@ -8,9 +8,9 @@ class FavouriteController {
             if (!userId || !productId) {
                 return next(ApiError.badRequest('Необходимы userId и productId для добавления в избранное'))
             }
-            
+
             const existingFavourite = await Favourite.findOne({ where: { userId, productId } });
-            
+
             if (existingFavourite) {
                 return next(ApiError.badRequest('Такой продукт уже добавлен в избранное'));
             }
@@ -32,30 +32,30 @@ class FavouriteController {
             return next(ApiError.internal(err.message))
         }
     }
-    async getOneByProductId(req, res, next) {
+    async getOneByProductIdUserId(req, res, next) {
         try {
-            const { productId } = req.params
-            const favourite = await Favourite.findOne({ where: { productId }, include: [{ model: Product }] });
-            
+            const { productId, userId } = req.params
+            const favourite = await Favourite.findOne({ where: { productId, userId }, include: [{ model: Product }] });
+
             if (!favourite) {
                 return res.json(false)
             }
-            
+
             return res.json(true);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
-    
+
     async delete(req, res, next) {
         try {
             const { userId, productId } = req.params;
             const favorite = await Favourite.findOne({ where: { productId: productId, userId: userId } });
-            
+
             if (!favorite) {
                 return next(ApiError.badRequest('Продукт не найден'));
             }
-            
+
             await favorite.destroy();
             return res.json({ message: 'Продукт удален из избранных' });
         } catch (err) {
