@@ -1,5 +1,6 @@
 const { Product, Category, User, Attribute, ProductAttribute, Favourite } = require('../models/models');
 const ApiError = require('../error/ApiError');
+const { Op } = require('sequelize');
 
 class ProductController {
     async create(req, res, next) {
@@ -34,19 +35,39 @@ class ProductController {
 
 
 
+
+
     async getAll(req, res, next) {
         try {
+            const { fromPrice, toPrice, category } = req.query;
+
+            let whereClause = {};
+
+            if (fromPrice) {
+                whereClause.price = { ...whereClause.price, [Op.gte]: parseFloat(fromPrice) };
+            }
+
+            if (toPrice) {
+                whereClause.price = { ...whereClause.price, [Op.lte]: parseFloat(toPrice) };
+            }
+
+            if (category) {
+                whereClause.categoryId = category; // Assuming category is passed as an ID. Adjust accordingly if it's a name or another property.
+            }
+
             const products = await Product.findAll({
+                where: whereClause,
                 include: [{ model: Category }, { model: User }],
-                order: [
-                    ['id', 'ASC']
-                ]
+                order: [['id', 'ASC']]
             });
+
             return res.json(products);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
+
+
 
     async getOne(req, res, next) {
         try {
@@ -116,13 +137,13 @@ class ProductController {
         try {
             const { id } = req.params;
             const { title, description, price, introtext, geo, categoryTitle } = req.body;
-    
+
             // Найти продукт по id
             const product = await Product.findByPk(id);
             if (!product) {
                 return next(ApiError.badRequest('Продукт не найден'))
             }
-    
+
             // Обновить поля продукта
             product.title = title || product.title;
             product.description = description || product.description;
@@ -130,16 +151,16 @@ class ProductController {
             product.introtext = introtext || product.introtext;
             product.geo = geo || product.geo;
             product.categoryTitle = categoryTitle || product.categoryTitle;
-    
+
             // Сохранить изменения
             await product.save();
-    
+
             return res.json(product);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
-    
+
 }
 
 
