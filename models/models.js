@@ -76,7 +76,7 @@ const Product = sequelize.define('product', {
         allowNull: false
     },
     userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.BIGINT,
         references: {
             model: User,
             key: 'id',
@@ -212,7 +212,7 @@ const Favourite = sequelize.define('favourite', {
         autoIncrement: true
     },
     userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.BIGINT,
         references: {
             model: User,
             key: 'id'
