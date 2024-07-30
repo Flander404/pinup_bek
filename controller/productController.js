@@ -55,19 +55,21 @@ class ProductController {
                 whereClause.categoryId = category; // Assuming category is passed as an ID. Adjust accordingly if it's a name or another property.
             }
 
+            console.log('Where Clause:', whereClause);  // Debugging line
+
             const products = await Product.findAll({
                 where: whereClause,
                 include: [{ model: Category }, { model: User }],
                 order: [['id', 'ASC']]
             });
 
+            console.log('Filtered Products:', products);  // Debugging line
+
             return res.json(products);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
-
-
 
     async getOne(req, res, next) {
         try {
