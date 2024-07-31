@@ -1,5 +1,6 @@
-const { Favourite, Product } = require('../models/models');
+const { Favourite, Product, User } = require('../models/models');
 const ApiError = require('../error/ApiError');
+const { model } = require('../db');
 
 class FavouriteController {
     async create(req, res, next) {
@@ -26,7 +27,7 @@ class FavouriteController {
     async getAllByUserId(req, res, next) {
         try {
             const { userId } = req.params
-            const favourites = await Favourite.findAll({ where: { userId }, include: [{ model: Product }] })
+            const favourites = await Favourite.findAll({ where: { userId }, include: [{ model: Product, include: [{ model: User }] }] })
             return res.json(favourites)
         } catch (err) {
             return next(ApiError.internal(err.message))

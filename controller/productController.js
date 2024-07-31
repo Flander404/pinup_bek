@@ -2,6 +2,8 @@ const { Product, Category, User, Attribute, ProductAttribute, Favourite } = requ
 const ApiError = require('../error/ApiError');
 const { Op } = require('sequelize');
 
+const uuid = require('uuid');
+
 class ProductController {
     async create(req, res, next) {
         try {
@@ -18,8 +20,10 @@ class ProductController {
             const user = await User.findByPk(userId);
             if (!user) return next(ApiError.badRequest('Пользователь не найден'));
 
+            let idName = uuid.v4().replace(/-/g, '');
+
             const product = await Product.create({
-                title, description, price, introtext, categoryTitle: category.title, userId, geo
+                id: idName, title, description, price, introtext, categoryTitle: category.title, userId, geo
             });
 
             const fullProduct = await Product.findOne({
@@ -33,13 +37,9 @@ class ProductController {
         }
     }
 
-
-
-
-
     async getAll(req, res, next) {
         try {
-            const { fromPrice, toPrice, category } = req.query;
+            const { fromPrice, toPrice } = req.query;
 
             let whereClause = {};
 
@@ -51,25 +51,18 @@ class ProductController {
                 whereClause.price = { ...whereClause.price, [Op.lte]: parseFloat(toPrice) };
             }
 
-            if (category) {
-                whereClause.categoryId = category; // Assuming category is passed as an ID. Adjust accordingly if it's a name or another property.
-            }
-
-            console.log('Where Clause:', whereClause);  // Debugging line
-
             const products = await Product.findAll({
                 where: whereClause,
-                include: [{ model: Category }, { model: User }],
+                include: [{ model: User }, { model: ProductAttribute }],
                 order: [['id', 'ASC']]
             });
-
-            console.log('Filtered Products:', products);  // Debugging line
 
             return res.json(products);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
+
 
     async getOne(req, res, next) {
         try {
@@ -87,16 +80,28 @@ class ProductController {
     async getByCategory(req, res, next) {
         try {
             const { categoryTitle } = req.params;
+            const { fromPrice, toPrice } = req.query;
+
             const category = await Category.findOne({ where: { title: categoryTitle } });
             if (!category) {
                 return next(ApiError.badRequest('Категория не найдена'));
-            } else {
-                const products = await Product.findAll({
-                    where: { categoryTitle },
-                    include: [{ model: Category }, { model: User }]
-                });
-                return res.json(products);
             }
+            let whereClause = { categoryTitle: category.title };
+
+            if (fromPrice) {
+                whereClause.price = { ...whereClause.price, [Op.gte]: parseFloat(fromPrice) };
+            }
+
+            if (toPrice) {
+                whereClause.price = { ...whereClause.price, [Op.lte]: parseFloat(toPrice) };
+            }
+
+            const products = await Product.findAll({
+                where: whereClause,
+                include: [{ model: Category }, { model: User }]
+            });
+
+            return res.json(products);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
@@ -139,12 +144,13 @@ class ProductController {
         try {
             const { id } = req.params;
             const { title, description, price, introtext, geo, categoryTitle } = req.body;
-
             // Найти продукт по id
             const product = await Product.findByPk(id);
             if (!product) {
                 return next(ApiError.badRequest('Продукт не найден'))
             }
+            console.log(product, '!!!AAA');
+
 
             // Обновить поля продукта
             product.title = title || product.title;

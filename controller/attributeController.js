@@ -1,5 +1,6 @@
-const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize } = require("../models/models");
+const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize, User } = require("../models/models");
 const ApiError = require('../error/ApiError')
+const { Op } = require('sequelize');
 
 class AttributeController {
     async createAttributeCategory(req, res, next) {
@@ -103,6 +104,52 @@ class AttributeController {
         }
     }
 
+    async getAllProductByAttributeId(req, res, next) {
+        try {
+            const { id } = req.params;
+            if (!id) {
+                return next(ApiError.badRequest('Атрибут обязателен для получения продуктов с этим атрибутом'));
+            }
+
+            const attributeIdArray = id.split(',').map(id => id.trim());
+
+            console.log('attributeIdArray:', attributeIdArray); // Логируем массив атрибутов
+
+            const productAttributes = await ProductAttribute.findAll({
+                where: {
+                    attributeId: {
+                        [Op.in]: attributeIdArray
+                    }
+                },
+                include: [{ model: Product, include: [{ model: User }] }]
+            });
+
+            console.log('productAttributes:', productAttributes); // Логируем полученные атрибуты
+
+            if (productAttributes.length === 0) {
+                console.log('No products found for the given attribute IDs.');
+                return res.json([]);
+            }
+
+            const uniqueProductsMap = new Map();
+            productAttributes.forEach(pa => {
+                if (pa.product) {
+                    uniqueProductsMap.set(pa.product.id, pa.product);
+                }
+            });
+
+            const uniqueProducts = Array.from(uniqueProductsMap.values());
+
+            console.log('uniqueProducts:', uniqueProducts); // Логируем уникальные продукты
+
+            return res.json(uniqueProducts);
+        } catch (err) {
+            console.error('Error fetching products by attribute ID:', err); // Логируем ошибку
+            return next(ApiError.internal(err.message));
+        }
+    }
+
+
     async createAttributeProduct(req, res, next) {
         try {
             const { productId, attributeId, value } = req.body
@@ -149,13 +196,13 @@ class AttributeController {
             if (result === 0) {
                 return next(ApiError.badRequest('Связь атрибута и товара не найдена'));
             }
-            
+
             res.status(200).send({ message: 'Связь атрибута и товара успешно удалена' });
         } catch (err) {
             return next(ApiError.badRequest(err.message));
         }
     }
-    
+
 }
 
 module.exports = new AttributeController();

@@ -43,9 +43,8 @@ const Category = sequelize.define('category', {
 
 const Product = sequelize.define('product', {
     id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
+        type: DataTypes.STRING,
+        primaryKey: true
     },
     title: {
         type: DataTypes.STRING,
@@ -117,7 +116,7 @@ const Image = sequelize.define('image', {
         allowNull: false,
     },
     productId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         references: {
             model: Product,
             key: 'id',
@@ -183,7 +182,7 @@ const Attribute = sequelize.define('attribute', {
 
 const ProductAttribute = sequelize.define('product-attribute', {
     productId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         references: {
             model: Product,
             key: 'id'
@@ -220,14 +219,14 @@ const Favourite = sequelize.define('favourite', {
         allowNull: false
     },
     productId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         references: {
             model: Product,
             key: 'id'
         },
         allowNull: false
     }
-})
+});
 
 Image.addHook('beforeCreate', async (image, options) => {
     const maxId = await Image.max('id', { where: { productId: image.productId } });
@@ -240,30 +239,26 @@ Product.belongsTo(User, { foreignKey: 'userId', targetKey: 'id' });
 Product.hasMany(Image, { foreignKey: 'productId' });
 Image.belongsTo(Product, { foreignKey: 'productId', targetKey: 'id' });
 
-Category.hasMany(Product, { foreignKey: 'categoryTitle' });
+Category.hasMany(Product, { foreignKey: 'categoryTitle', sourceKey: 'title' });
 Product.belongsTo(Category, { foreignKey: 'categoryTitle', targetKey: 'title' });
 
-Category.hasMany(AttributeCategory, { foreignKey: 'categoryTitle' })
-AttributeCategory.belongsTo(Category, { foreignKey: 'categoryTitle' })
+Category.hasMany(AttributeCategory, { foreignKey: 'categoryTitle' });
+AttributeCategory.belongsTo(Category, { foreignKey: 'categoryTitle' });
 
 AttributeCategory.hasMany(Attribute, { foreignKey: 'attributeCategoryName', sourceKey: 'name' });
 Attribute.belongsTo(AttributeCategory, { foreignKey: 'attributeCategoryName', targetKey: 'name' });
 
-Product.hasMany(ProductAttribute, { foreignKey: 'productId' });
+Product.hasMany(ProductAttribute, { foreignKey: 'productId'});
 ProductAttribute.belongsTo(Product, { foreignKey: 'productId' });
 
 Attribute.hasMany(ProductAttribute, { foreignKey: 'attributeId' });
 ProductAttribute.belongsTo(Attribute, { foreignKey: 'attributeId' });
 
-
-// Пользователь может иметь множество избранных записей
 User.hasMany(Favourite, { foreignKey: 'userId' });
 Favourite.belongsTo(User, { foreignKey: 'userId' });
 
-// Одна запись в избранных относится к одному продукту
 Favourite.belongsTo(Product, { foreignKey: 'productId' });
 Product.hasMany(Favourite, { foreignKey: 'productId' });
-
 
 module.exports = {
     sequelize,
