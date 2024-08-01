@@ -33,20 +33,9 @@ class ProductImageController {
 
     async getAllImagesByProductId(req, res, next) {
         try {
-            const { id } = req.params; // id продукта
-            const { imageId } = req.query; // Получение query-параметра imageId
+            const { productId } = req.params; // id продукта
     
-            if (imageId) {
-                const image = await Image.findOne({ where: { id: imageId, productId: id } });
-    
-                if (!image) {
-                    return next(ApiError.badRequest('Изображение не найдено'));
-                }
-    
-                return res.json(image);
-            }
-    
-            const images = await Image.findAll({ where: { productId: id } });
+            const images = await Image.findAll({ where: { productId: productId } });
     
             if (images.length === 0) {
                 return next(ApiError.badRequest('Изображения для этого продукта не найдены'));

@@ -107,41 +107,61 @@ class AttributeController {
     async getAllProductByAttributeId(req, res, next) {
         try {
             const { id } = req.params;
+            const { fromPrice, toPrice, categoryTitle } = req.query;
+    
             if (!id) {
                 return next(ApiError.badRequest('Атрибут обязателен для получения продуктов с этим атрибутом'));
             }
-
+    
             const attributeIdArray = id.split(',').map(id => id.trim());
-
-            console.log('attributeIdArray:', attributeIdArray); // Логируем массив атрибутов
-
+    
+            let priceFilter = {};
+            if (fromPrice) {
+                priceFilter[Op.gte] = parseFloat(fromPrice);
+            }
+            if (toPrice) {
+                priceFilter[Op.lte] = parseFloat(toPrice);
+            }
+    
+            let categoryFilter = {};
+            if (categoryTitle) {
+                categoryFilter = { categoryTitle: categoryTitle };
+            }
+    
             const productAttributes = await ProductAttribute.findAll({
                 where: {
                     attributeId: {
                         [Op.in]: attributeIdArray
                     }
                 },
-                include: [{ model: Product, include: [{ model: User }] }]
+                include: [{
+                    model: Product,
+                    where: {
+                        ...priceFilter ? { price: priceFilter } : {},
+                        ...categoryFilter
+                    },
+                    include: [{ model: User }]
+                }]
             });
-
+    
             console.log('productAttributes:', productAttributes); // Логируем полученные атрибуты
-
+    
             if (productAttributes.length === 0) {
                 console.log('No products found for the given attribute IDs.');
                 return res.json([]);
             }
-
+    
             const uniqueProductsMap = new Map();
             productAttributes.forEach(pa => {
                 if (pa.product) {
                     uniqueProductsMap.set(pa.product.id, pa.product);
                 }
             });
-
+    
             const uniqueProducts = Array.from(uniqueProductsMap.values());
-
+    
             console.log('uniqueProducts:', uniqueProducts); // Логируем уникальные продукты
-
+    
             return res.json(uniqueProducts);
         } catch (err) {
             console.error('Error fetching products by attribute ID:', err); // Логируем ошибку
@@ -202,7 +222,7 @@ class AttributeController {
             return next(ApiError.badRequest(err.message));
         }
     }
-
+    
 }
 
 module.exports = new AttributeController();

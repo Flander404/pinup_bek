@@ -3,7 +3,7 @@ const productImageController = require('../controller/productImageController')
 const router = new Router()
 
 router.post('/', productImageController.create)
-router.get('/productId/:id', productImageController.getAllImagesByProductId)
-router.delete('/productId/:productId/images/:id', productImageController.deleteImageById)
+router.get('/product/:productId', productImageController.getAllImagesByProductId)
+router.delete('/product/:productId/image/:id', productImageController.deleteImageById)
 
 module.exports = router
