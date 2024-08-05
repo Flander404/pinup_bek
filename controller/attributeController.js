@@ -1,4 +1,4 @@
-const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize, User } = require("../models/models");
+const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize, User, Image } = require("../models/models");
 const ApiError = require('../error/ApiError')
 const { Op } = require('sequelize');
 
@@ -140,7 +140,7 @@ class AttributeController {
                         ...priceFilter ? { price: priceFilter } : {},
                         ...categoryFilter
                     },
-                    include: [{ model: User }]
+                    include: [{ model: User }, {model: Image}]
                 }]
             });
     

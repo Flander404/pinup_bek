@@ -107,9 +107,8 @@ const Product = sequelize.define('product', {
 
 const Image = sequelize.define('image', {
     id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true
     },
     url: {
         type: DataTypes.STRING,
@@ -125,13 +124,6 @@ const Image = sequelize.define('image', {
         },
         allowNull: false
     }
-}, {
-    indexes: [
-        {
-            unique: true,
-            fields: ['id', 'productId'] // добавьте уникальный индекс для пар (id, productId)
-        }
-    ]
 });
 
 const AttributeCategory = sequelize.define('attribute-category', {
@@ -226,11 +218,6 @@ const Favourite = sequelize.define('favourite', {
         },
         allowNull: false
     }
-});
-
-Image.addHook('beforeCreate', async (image, options) => {
-    const maxId = await Image.max('id', { where: { productId: image.productId } });
-    image.id = maxId !== null ? maxId + 1 : 1;
 });
 
 User.hasMany(Product, { foreignKey: 'userId' });

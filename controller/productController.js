@@ -1,4 +1,4 @@
-const { Product, Category, User, Attribute, ProductAttribute, Favourite } = require('../models/models');
+const { Product, Category, User, Attribute, ProductAttribute, Favourite, Image } = require('../models/models');
 const ApiError = require('../error/ApiError');
 const { Op } = require('sequelize');
 
@@ -20,7 +20,7 @@ class ProductController {
             const user = await User.findByPk(userId);
             if (!user) return next(ApiError.badRequest('Пользователь не найден'));
 
-            let idName = uuid.v4().replace(/-/g, '');
+            let idName = uuid.v4().replace(/-/g, '')
 
             const product = await Product.create({
                 id: idName, title, description, price, introtext, categoryTitle: category.title, userId, geo
@@ -39,7 +39,7 @@ class ProductController {
 
     async getAll(req, res, next) {
         try {
-            const { fromPrice, toPrice } = req.query;
+            const { fromPrice, toPrice, country, city } = req.query;
 
             let whereClause = {};
 
@@ -51,17 +51,30 @@ class ProductController {
                 whereClause.price = { ...whereClause.price, [Op.lte]: parseFloat(toPrice) };
             }
 
+            // Извлекаем все продукты, соответствующие фильтру по цене
             const products = await Product.findAll({
                 where: whereClause,
-                include: [{ model: User }, { model: ProductAttribute }],
+                include: [{ model: User }, { model: ProductAttribute }, { model: Image }],
                 order: [['id', 'ASC']]
             });
 
-            return res.json(products);
+            // Дополнительная фильтрация по стране и городу, если параметры переданы
+            const filteredProducts = products.filter(product => {
+                let geoCountry = product.geo.find(item => item.country)?.country;
+                let geoCity = product.geo.find(item => item.city)?.city;
+
+                let countryMatch = country ? geoCountry === country : true;
+                let cityMatch = city ? geoCity === city : true;
+
+                return countryMatch && cityMatch;
+            });
+
+            return res.json(filteredProducts);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
     }
+
 
 
     async getOne(req, res, next) {
@@ -80,7 +93,7 @@ class ProductController {
     async getByCategory(req, res, next) {
         try {
             const { categoryTitle } = req.params;
-            const { fromPrice, toPrice } = req.query;
+            const { fromPrice, toPrice, country, city } = req.query;
 
             const category = await Category.findOne({ where: { title: categoryTitle } });
             if (!category) {
@@ -98,10 +111,20 @@ class ProductController {
 
             const products = await Product.findAll({
                 where: whereClause,
-                include: [{ model: Category }, { model: User }]
+                include: [{ model: Category }, { model: User }, { model: Image }]
             });
 
-            return res.json(products);
+            const filteredProducts = products.filter(product => {
+                let geoCountry = product.geo.find(item => item.country)?.country;
+                let geoCity = product.geo.find(item => item.city)?.city;
+
+                let countryMatch = country ? geoCountry === country : true;
+                let cityMatch = city ? geoCity === city : true;
+
+                return countryMatch && cityMatch;
+            });
+
+            return res.json(filteredProducts);
         } catch (err) {
             return next(ApiError.internal(err.message));
         }
@@ -109,7 +132,7 @@ class ProductController {
     async getByUserId(req, res, next) {
         try {
             const { userId } = req.params;
-            const products = await Product.findAll({ where: { userId } })
+            const products = await Product.findAll({ where: { userId }, include: [{ model: Category }, { model: Image }] })
             if (products.length <= 0) {
                 return res.json(products)
             }

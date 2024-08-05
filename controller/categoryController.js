@@ -1,7 +1,8 @@
 const uuid = require('uuid');
 const path = require('path');
-const { Category, Favourite, Product } = require('../models/models');
+const { Category, Favourite, Product, User, ProductAttribute, Image } = require('../models/models');
 const ApiError = require('../error/ApiError');
+const { Op } = require('sequelize');
 
 class CategoryController {
     async create(req, res, next) {
@@ -22,11 +23,35 @@ class CategoryController {
 
     async getAll(req, res, next) {
         try {
+            const { country, city } = req.query;
+
             const categories = await Category.findAll({
-                order: [
-                    ['id', 'ASC']
-                ]
+                order: [['id', 'ASC']]
             });
+
+            const products = await Product.findAll({
+                include: [{ model: User }, { model: ProductAttribute }, { model: Image }],
+                order: [['id', 'ASC']]
+            });
+
+            // Фильтрация продуктов по стране и городу
+            const filteredProducts = products.filter(product => {
+                let geoCountry = product.geo.find(item => item.country)?.country;
+                let geoCity = product.geo.find(item => item.city)?.city;
+
+                let countryMatch = country ? geoCountry === country : true;
+                let cityMatch = city ? geoCity === city : true;
+
+                return countryMatch && cityMatch;
+            });
+
+            // Подсчет количества продуктов для каждой категории
+            for (const category of categories) {
+                const categoryProducts = filteredProducts.filter(product => product.categoryTitle === category.title);
+                category.total = categoryProducts.length;
+                await category.save();
+            }
+
             return res.json(categories);
         } catch (err) {
             return next(ApiError.internal(err.message));
@@ -40,6 +65,7 @@ class CategoryController {
             if (!category) {
                 return next(ApiError.badRequest('Категория не найдена'));
             }
+
             return res.json(category);
         } catch (err) {
             return next(ApiError.internal(err.message));
