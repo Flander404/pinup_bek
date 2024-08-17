@@ -73,7 +73,7 @@ class AttributeController {
     async createAttribute(req, res, next) {
         try {
             const { name, attributeCategoryName } = req.body;
-            if (!name || !attributeCategoryName) {
+            if (!name) {
                 return next(ApiError.badRequest('Название и категория атрибута обязательны для создания'));
             }
 
@@ -165,6 +165,25 @@ class AttributeController {
             return res.json(uniqueProducts);
         } catch (err) {
             console.error('Error fetching products by attribute ID:', err); // Логируем ошибку
+            return next(ApiError.internal(err.message));
+        }
+    }
+
+    async deleteAttribute(req,res,next){
+        try{
+            const { name } = req.params
+    
+            if(!name){
+                return next(ApiError.badRequest('Название атрибута обязательно для удаления'))
+            }
+
+            const attribute = await Attribute.findOne({ where: { name } })
+            if (!attribute) {
+                return next(ApiError.badRequest('Атрибут не найден'))
+            }
+            await attribute.destroy()
+            return res.status(200).send({ message: 'Атрибут успешно удален' })
+        }catch(err){
             return next(ApiError.internal(err.message));
         }
     }
