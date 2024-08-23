@@ -10,7 +10,7 @@ router.delete('/category/:id', attributeController.deleteAttributeCategory)
 router.post('/', attributeController.createAttribute)
 router.get('/', attributeController.getAllAttributes)
 router.get('/:id', attributeController.getAllProductByAttributeId)
-router.delete('/:id', attributeController.deleteAttribute)
+router.delete('/:name', attributeController.deleteAttribute)
 
 router.post('/product', attributeController.createAttributeProduct)
 router.get('/product/:productId', attributeController.getAllAttributeProducts)
