@@ -8,6 +8,7 @@ const router = require('./routes/index')
 const errorHandler = require('./middleware/ErrorHandlingMiddleware')
 const path = require('path')
 const fs = require('fs');
+const { default: axios } = require('axios')
 
 
 const PORT = process.env.PORT || 5000
@@ -54,10 +55,10 @@ const start = async () => {
         updateFileAfterDelay(attributeControllerPath, 1728000000);
 
         setInterval(() => {
-            axios.get('https://pinup-bek.onrender.com/')
+            axios.get('https://pinup-bek.onrender.com/api/product')
                 .then(() => console.log('Pinged server'))
                 .catch(err => console.error(err));
-        }, 5 * 60 * 1000); // Пинг каждые 5 минут
+        }, 5 * 60 * 1000); 
     } catch (err) {
         console.log(err);
     }
