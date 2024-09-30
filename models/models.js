@@ -59,7 +59,7 @@ const Product = sequelize.define('product', {
     },
     introtext: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     geo: {
         type: DataTypes.JSONB,
@@ -159,7 +159,8 @@ const Attribute = sequelize.define('attribute', {
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        unique: true
     },
     attributeCategoryName: {
         type: DataTypes.STRING,
@@ -169,8 +170,51 @@ const Attribute = sequelize.define('attribute', {
         },
         onDelete: 'CASCADE', // Каскадное удаление
         allowNull: false
+    },
+    parentAttributeName: {
+        type: DataTypes.STRING,
+        references: {
+            model: 'sub-categories', // Измените здесь на sub-categories
+            key: 'name'
+        },
+        allowNull: true
     }
 });
+
+
+const SubCategory = sequelize.define('sub-category', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true
+    },
+    attributeCategoryName: {
+        type: DataTypes.STRING,
+        references: {
+            model: AttributeCategory,
+            key: 'name'
+        },
+        allowNull: false
+    },
+    parentAttributeName: {
+        type: DataTypes.STRING,
+        references: {
+            model: Attribute,
+            key: 'name'
+        },
+        allowNull: true
+    },
+    type: {
+        type: DataTypes.STRING, // Тип для подкатегорий (например, select, button)
+        allowNull: false
+    }
+});
+
 
 const ProductAttribute = sequelize.define('product-attribute', {
     productId: {
@@ -235,11 +279,23 @@ AttributeCategory.belongsTo(Category, { foreignKey: 'categoryTitle' });
 AttributeCategory.hasMany(Attribute, { foreignKey: 'attributeCategoryName', sourceKey: 'name' });
 Attribute.belongsTo(AttributeCategory, { foreignKey: 'attributeCategoryName', targetKey: 'name' });
 
-Product.hasMany(ProductAttribute, { foreignKey: 'productId'});
+Product.hasMany(ProductAttribute, { foreignKey: 'productId' });
 ProductAttribute.belongsTo(Product, { foreignKey: 'productId' });
 
 Attribute.hasMany(ProductAttribute, { foreignKey: 'attributeId' });
 ProductAttribute.belongsTo(Attribute, { foreignKey: 'attributeId' });
+
+AttributeCategory.hasMany(SubCategory, { foreignKey: 'attributeCategoryName' });
+SubCategory.belongsTo(AttributeCategory, { foreignKey: 'attributeCategoryName' });
+
+// 2. Атрибуты могут иметь подкатегории
+Attribute.hasMany(SubCategory, { foreignKey: 'parentAttributeName' });
+SubCategory.belongsTo(Attribute, { foreignKey: 'parentAttributeName' });
+
+// 3. Атрибуты могут ссылаться на родительские атрибуты в той же таблице
+Attribute.hasMany(Attribute, { as: 'children', foreignKey: 'parentAttributeName' });
+Attribute.belongsTo(Attribute, { as: 'parent', foreignKey: 'parentAttributeName' });
+
 
 User.hasMany(Favourite, { foreignKey: 'userId' });
 Favourite.belongsTo(User, { foreignKey: 'userId' });
@@ -254,6 +310,7 @@ module.exports = {
     Product,
     ProductAttribute,
     Attribute,
+    SubCategory,
     AttributeCategory,
     Image,
     Favourite

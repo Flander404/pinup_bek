@@ -1,13 +1,15 @@
-const ApiError = require('../error/ApiError')
+
 const { User } = require('../models/models')
 const jwt = require('jsonwebtoken')
 const uuid = require('uuid')
 const path = require('path')
 const { where } = require('sequelize')
+const ApiError = require('../error/ApiError')
 
 const generateJwt = (id, name, img, status) => {
     return jwt.sign({ id: id, name: name, img: img, status }, process.env.SECRET_KEY, { expiresIn: '24h' })
 }
+
 
 class UserController {
     async registration(req, res, next) {

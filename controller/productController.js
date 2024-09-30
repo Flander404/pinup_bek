@@ -1,4 +1,4 @@
-const { Product, Category, User, Attribute, ProductAttribute, Favourite, Image } = require('../models/models');
+const { Product, Category, User, Attribute, ProductAttribute, Favourite, Image, sequelize } = require('../models/models');
 const ApiError = require('../error/ApiError');
 const { Op } = require('sequelize');
 
@@ -8,7 +8,7 @@ class ProductController {
     async create(req, res, next) {
         try {
             const { title, description, price, introtext, categoryTitle, userId, geo } = req.body;
-            if (!title || !description || !price || !introtext || !categoryTitle || !userId || !geo) {
+            if (!title || !description || !price || !categoryTitle || !userId || !geo) {
                 return next(ApiError.badRequest('Все поля обязательны для заполнения'));
             }
 
@@ -143,23 +143,42 @@ class ProductController {
     }
 
     async delete(req, res, next) {
+        const transaction = await sequelize.transaction();
+
         try {
             const { id } = req.params;
-            const product = await Product.findByPk(id);
+            const product = await Product.findByPk(id, { transaction });
+
             if (!product) {
                 return next(ApiError.badRequest('Товар не найден'));
             }
-            const favorite = await Favourite.findOne({ where: { productId: id } })
+
+            // Удаление всех связанных данных
+            const favorite = await Favourite.findOne({ where: { productId: id }, transaction });
             if (favorite) {
-                await favorite.destroy();
+                await favorite.destroy({ transaction });
             }
-            const attribute = await ProductAttribute.findOne({ where: { productId: id } })
-            if (attribute) {
-                await attribute.destroy();
+
+            const attributes = await ProductAttribute.findAll({ where: { productId: id }, transaction });
+            if (attributes.length) {
+                await Promise.all(attributes.map(attr => attr.destroy({ transaction })));
             }
-            await product.destroy();
-            return res.json({ message: 'Товар удален' });
+
+            const images = await Image.findAll({ where: { productId: id }, transaction });
+            if (images.length) {
+                await Promise.all(images.map(image => image.destroy({ transaction })));
+            }
+
+            // Удаление самого товара
+            await product.destroy({ transaction });
+
+            // Подтверждение транзакции
+            await transaction.commit();
+
+            return res.json({ message: 'Товар и все связанные данные успешно удалены' });
         } catch (err) {
+            // Откат транзакции в случае ошибки
+            await transaction.rollback();
             return next(ApiError.internal(err.message));
         }
     }

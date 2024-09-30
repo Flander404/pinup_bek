@@ -1,4 +1,4 @@
-const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize, User, Image } = require("../models/models");
+const { AttributeCategory, Attribute, ProductAttribute, Product, Category, sequelize, User, Image, SubCategory } = require("../models/models");
 const ApiError = require('../error/ApiError')
 const { Op } = require('sequelize');
 
@@ -7,7 +7,7 @@ class AttributeController {
         try {
             const { name, type, categoryTitle } = req.body;
             if (!type || !categoryTitle) {
-                return next(ApiError.badRequest('Тип и категория обязательны для создания категории атрибутов'));
+                return next(ApiError.badRequest/('Тип и категория обязательны для создания категории атрибутов'));
             }
             const categories = await Category.findOne({ where: { title: categoryTitle } });
             if (!categories) {
@@ -72,8 +72,8 @@ class AttributeController {
     }
     async createAttribute(req, res, next) {
         try {
-            const { name, attributeCategoryName } = req.body;
-            if (!name) {
+            const { name, attributeCategoryName, parentAttributeName } = req.body;
+            if (!name || !attributeCategoryName) {
                 return next(ApiError.badRequest('Название и категория атрибута обязательны для создания'));
             }
 
@@ -83,10 +83,20 @@ class AttributeController {
                 return next(ApiError.badRequest('Категория атрибута не найдена'));
             }
 
+            // Поиск родительского атрибута, если он указан
+            let parentAttribute = null;
+            if (parentAttributeName) {
+                parentAttribute = await SubCategory.findOne({ where: { name: parentAttributeName } });
+                if (!parentAttribute) {
+                    return next(ApiError.badRequest('Родительский атрибут не найден'));
+                }
+            }
+
             // Создание нового атрибута
             const attribute = await Attribute.create({
                 name,
-                attributeCategoryName: attributeCategory.name
+                attributeCategoryName: attributeCategory.name,
+                parentAttributeName: parentAttribute ? parentAttribute.name : null
             });
 
             return res.json(attribute);
@@ -103,7 +113,24 @@ class AttributeController {
             next(ApiError.internal("Ошибка сервера: " + err.message));
         }
     }
+    async getSubAttributes(req, res, next) {
+        try {
+            const { parentAttributeName } = req.params;
+            if (!parentAttributeName) {
+                return next(ApiError.badRequest('Имя родительского атрибута обязательно'));
+            }
 
+            const subAttributes = await Attribute.findAll({
+                where: {
+                    parentAttributeName
+                }
+            });
+
+            return res.json(subAttributes);
+        } catch (err) {
+            next(ApiError.internal("Ошибка сервера: " + err.message));
+        }
+    }
     async getAllProductByAttributeId(req, res, next) {
         try {
             const { id } = req.params;
@@ -188,6 +215,54 @@ class AttributeController {
         }
     }
 
+    async createSubCategory(req, res, next){
+        try {
+            const { name, attributeCategoryName, parentAttributeName, type } = req.body
+            const attributeCategory = await AttributeCategory.findOne({where: { name: attributeCategoryName}})
+            if (!attributeCategory) {
+                return next(ApiError.badRequest('Родительская категория не найдена'))
+            }
+            const category = await SubCategory.create({
+                name,
+                attributeCategoryName,
+                parentAttributeName,
+                type
+            })
+            return res.json(category);
+        } catch (err) {
+            
+            return next(ApiError.internal(err.message));
+        }
+    }
+
+    async getAllSubCategoriesByAttributeName(req, res, next) {
+        try {
+            const { parentAttributeName } = req.params
+            if (!parentAttributeName) {
+                return next(ApiError.badRequest('Имя родительского атрибута обязательно'))
+            }
+            const subcategories = await SubCategory.findAll({ where: { parentAttributeName } })
+            return res.json(subcategories);
+        }catch(err) {
+            return next(ApiError.internal(err.message));
+        }
+    }
+    async deleteSubCategory(req, res, next){
+        try{
+            const { id } = req.params
+            if(!id){
+                return next(ApiError.badRequest('Имя подкатегории обязательно для удаления'))
+            }
+            const subcategory = await SubCategory.findOne({ where: { id } })
+            if (!subcategory) {
+                return next(ApiError.badRequest('Подкатегория не найдена'))
+            }
+            await subcategory.destroy()
+            return res.status(200).send({ message: 'Подкатегория успешно удалена' })
+        }catch(err){
+            return next(ApiError.internal(err.message));
+        }
+    }
 
     async createAttributeProduct(req, res, next) {
         try {
